@@ -5,11 +5,11 @@ class AppConfig {
 
   const AppConfig({required this.apiBaseUrl});
 
-  /// 10.0.2.2 = host loopback from the Android emulator.
+  /// Local backend reachable on the development network.
   static const fromEnvironment = AppConfig(
     apiBaseUrl: String.fromEnvironment(
       'API_BASE_URL',
-      defaultValue: 'http://10.0.2.2:8080',
+      defaultValue: 'http://192.168.1.59:8080',
     ),
   );
 }
