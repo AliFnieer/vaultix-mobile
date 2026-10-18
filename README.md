@@ -1,50 +1,69 @@
 # Vaultix Mobile
 
-Vaultix is a Flutter password manager and authenticator client for the
-Vaultix backend. It uses a Flutter-native architecture designed around secure
-local storage, backend integration, and cross-platform support.
+[![Flutter CI](https://github.com/AliFnieer/vaultix-mobile/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/AliFnieer/vaultix-mobile/actions/workflows/ci.yml)
 
-## Design system
+Vaultix Mobile is a Flutter client for the Vaultix password-management
+backend. It provides an encrypted local vault, account access, and
+device-managed authenticator entries.
 
-The Flutter theme defines light and dark palettes, Inter typography, gold
-primary actions, green secondary accents, soft surfaces, and rounded
-controls. It follows the device theme by default. Inter is bundled locally so
-the interface does not fetch fonts at runtime; its SIL Open Font License is in
-`assets/fonts/OFL.txt`.
+> **Status:** Development project. The CI workflow builds native platform
+> artifacts; these are not automatically signed or published to app stores.
 
-Vaultix keeps its own GoRouter,
-Riverpod state, backend contract, and feature-based Flutter screens.
+## Features
 
-## Architecture
+- Account registration, sign-in, session handling, and vault locking.
+- Offline-first vault items with local persistence and backend synchronization.
+- Encrypted local database and AES-GCM protection for locally stored secret
+  fields.
+- Device-only authenticator entries and QR scanning.
+- Light and dark Material themes, with Inter bundled locally.
 
-- `lib/app.dart`: Material app, theme, and GoRouter route definitions.
-- `lib/core/`: backend API, cryptography, encrypted persistence, repositories,
-  dependency injection, and synchronization.
-- `lib/core/theme/`: shared Material 3 design tokens and
-  component themes.
-- `lib/core/widgets/`: shared app-level presentation widgets.
-- `lib/features/`: feature screens and auth lifecycle controllers.
+Authenticator entries are stored on the device; the backend does not currently
+provide MFA or server-backed TOTP endpoints. Vaultix Mobile does not claim
+zero-knowledge encryption: review the backend's data handling and the security
+assumptions for your deployment before storing sensitive information.
 
-## Run
+## Supported platforms
 
-Install Flutter dependencies and run the app:
+| Platform | CI build | Notes |
+| --- | --- | --- |
+| Android | APK and AAB | Configure release signing before distribution. |
+| iOS | Unsigned app bundle | Requires Apple signing for installation and distribution. |
+| Linux | Release bundle | Requires GTK and libsecret runtime dependencies. |
+| macOS | Release app bundle | Configure signing and notarization for distribution. |
+| Windows | Release bundle | Package the output directory with its runtime files. |
+
+Web is not supported because the application uses native database and FFI
+dependencies.
+
+## Requirements
+
+- Flutter stable (the CI workflow currently uses Flutter 3.47.7).
+- A reachable Vaultix backend.
+- Platform-specific toolchains when building outside GitHub Actions:
+  Android SDK/JDK for Android, Xcode for Apple platforms, GTK development
+  packages for Linux, or Visual Studio with C++ desktop support for Windows.
+
+## Getting started
 
 ```sh
+git clone https://github.com/AliFnieer/vaultix-mobile.git
+cd vaultix-mobile
 flutter pub get
 flutter run
 ```
 
-Configure the backend address with `--dart-define=API_BASE_URL=...` when it
-differs from the Android emulator default:
+By default, the app targets `http://10.0.2.2:8080`, the host-loopback address
+used by the Android emulator. Set `API_BASE_URL` to the address of your backend
+when running on another platform or against a deployed service:
 
 ```sh
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
+flutter run --dart-define=API_BASE_URL=https://api.example.com
 ```
 
-Use HTTPS for non-local deployments.
-
-For local development, copy `.env.example` to `.env`, set `API_BASE_URL`, then
-load it into Flutter's compile-time define when running:
+For local development, copy `.env.example` to `.env` and set `API_BASE_URL`.
+Flutter does not load `.env` automatically; pass its value as a compile-time
+define. For example, in Bash:
 
 ```sh
 set -a
@@ -53,25 +72,67 @@ set +a
 flutter run --dart-define="API_BASE_URL=$API_BASE_URL"
 ```
 
-The real `.env` file is ignored by Git. GitHub Actions builds all supported
-native targets (Android, iOS, Linux, macOS, and Windows) on pushes to `main` or
-`dev`, pull requests, and version tags. Build outputs are uploaded as workflow
-artifacts. Configure the repository variable `API_BASE_URL` under
-**Settings → Secrets and variables → Actions → Variables** to embed the
-deployment backend URL; the workflow uses the Android emulator default when
-the variable is unset. The iOS artifact is unsigned and requires Apple
-code-signing credentials before distribution.
+Or in PowerShell:
 
-Web builds are not included because the app's SQLCipher/FFI storage dependency
-requires native platforms.
+```powershell
+$env:API_BASE_URL = "https://api.example.com"
+flutter run --dart-define="API_BASE_URL=$env:API_BASE_URL"
+```
 
-## Verify
+The local `.env` file is ignored by Git. Do not put passwords, signing keys,
+tokens, or other credentials in it or in `--dart-define`; compile-time values
+are embedded in the application. Use HTTPS for non-local backend connections.
+
+## Project structure
+
+```text
+lib/
+  app.dart                 App theme and navigation
+  core/
+    api/                   Backend API clients and models
+    config/                Compile-time configuration
+    crypto/                Key derivation and cryptographic helpers
+    data/                  Repositories
+    db/                    Encrypted local database
+    di/                    Riverpod providers
+    sync/                  Offline synchronization
+    theme/                 Shared Material design system
+  features/
+    auth/                  Authentication and vault lifecycle
+    settings/              App settings
+    totp/                  Device authenticator
+    vault/                 Vault and secret-item screens
+test/                      Unit and widget tests
+.github/workflows/         GitHub Actions CI and native builds
+```
+
+## Checks and builds
+
+Run the local checks:
 
 ```sh
-dart format lib test
+dart format --output=none --set-exit-if-changed lib test
 flutter analyze
 flutter test
 ```
 
-The backend does not expose MFA or server-backed TOTP endpoints. Authenticator
-entries are device-only; the app does not claim zero-knowledge encryption.
+Build a platform locally (use the matching platform toolchain):
+
+```sh
+flutter build apk --release
+flutter build appbundle --release
+flutter build linux --release
+flutter build macos --release
+flutter build windows --release
+flutter build ios --release --no-codesign
+```
+
+The [Flutter CI workflow](https://github.com/AliFnieer/vaultix-mobile/actions/workflows/ci.yml)
+runs formatting, analysis, and tests, then builds native artifacts for Android,
+iOS, Linux, macOS, and Windows. It runs for pull requests and pushes to `main`
+or `dev`; version tags matching `v*` and manual runs are also supported. Build
+artifacts are retained by GitHub Actions for 14 days.
+
+Set the repository Actions variable `API_BASE_URL` under **Settings → Secrets
+and variables → Actions → Variables** to use a backend URL in CI builds. If
+unset, the workflow uses the Android emulator default.
