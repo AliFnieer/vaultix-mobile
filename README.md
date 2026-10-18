@@ -43,6 +43,28 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
 
 Use HTTPS for non-local deployments.
 
+For local development, copy `.env.example` to `.env`, set `API_BASE_URL`, then
+load it into Flutter's compile-time define when running:
+
+```sh
+set -a
+. ./.env
+set +a
+flutter run --dart-define="API_BASE_URL=$API_BASE_URL"
+```
+
+The real `.env` file is ignored by Git. GitHub Actions builds all supported
+native targets (Android, iOS, Linux, macOS, and Windows) on pushes to `main` or
+`dev`, pull requests, and version tags. Build outputs are uploaded as workflow
+artifacts. Configure the repository variable `API_BASE_URL` under
+**Settings → Secrets and variables → Actions → Variables** to embed the
+deployment backend URL; the workflow uses the Android emulator default when
+the variable is unset. The iOS artifact is unsigned and requires Apple
+code-signing credentials before distribution.
+
+Web builds are not included because the app's SQLCipher/FFI storage dependency
+requires native platforms.
+
 ## Verify
 
 ```sh
