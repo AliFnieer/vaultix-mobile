@@ -53,9 +53,9 @@ flutter pub get
 flutter run
 ```
 
-By default, the app targets `http://10.0.2.2:8080`, the host-loopback address
-used by the Android emulator. Set `API_BASE_URL` to the address of your backend
-when running on another platform or against a deployed service:
+By default, the app targets `http://192.168.1.103:8081`, your backend's address
+on the local network. Set `API_BASE_URL` to a different backend address when
+needed:
 
 ```sh
 flutter run --dart-define=API_BASE_URL=https://api.example.com
