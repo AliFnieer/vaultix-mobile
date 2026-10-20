@@ -53,7 +53,7 @@ flutter pub get
 flutter run
 ```
 
-By default, the app targets `http://192.168.1.59:8080`, your backend's address
+By default, the app targets `http://192.168.1.103:8081`, your backend's address
 on the local network. Set `API_BASE_URL` to a different backend address when
 needed:
 
