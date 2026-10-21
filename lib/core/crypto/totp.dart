@@ -26,7 +26,10 @@ class TotpConfig {
   });
 
   bool get isValid =>
-      secretB32.isNotEmpty && digits >= 6 && digits <= 8 && period >= 15;
+      (base32Decode(secretB32)?.isNotEmpty ?? false) &&
+      digits >= 6 &&
+      digits <= 8 &&
+      period >= 15;
 }
 
 /// RFC 4648 base32 (A-Z2-7, padding optional, case-insensitive).
@@ -140,15 +143,17 @@ TotpConfig? parseOtpauthUri(String uri) {
     if (issuer.isEmpty) issuer = labelIssuer;
   }
   final secret = (parsed.queryParameters['secret'] ?? '').replaceAll(' ', '');
-  if (secret.isEmpty) return null;
+  if (base32Decode(secret)?.isNotEmpty != true) return null;
 
   final algoName = (parsed.queryParameters['algorithm'] ?? 'SHA1')
       .toUpperCase();
   final algo = switch (algoName) {
+    'SHA1' => TotpAlgorithm.sha1,
     'SHA256' => TotpAlgorithm.sha256,
     'SHA512' => TotpAlgorithm.sha512,
-    _ => TotpAlgorithm.sha1,
+    _ => null,
   };
+  if (algo == null) return null;
   final digits = int.tryParse(parsed.queryParameters['digits'] ?? '') ?? 6;
   final period = int.tryParse(parsed.queryParameters['period'] ?? '') ?? 30;
 

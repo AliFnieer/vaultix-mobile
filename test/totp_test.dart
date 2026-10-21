@@ -51,5 +51,36 @@ void main() {
         throwsFormatException,
       );
     });
+
+    test('parses valid otpauth TOTP setup URIs', () {
+      final config = parseOtpauthUri(
+        'otpauth://totp/Example%3Aalice%40example.com'
+        '?secret=GEZDGNBV&issuer=Example&algorithm=SHA256&digits=8&period=45',
+      );
+
+      expect(config, isNotNull);
+      expect(config!.issuer, 'Example');
+      expect(config.account, 'alice@example.com');
+      expect(config.algorithm, TotpAlgorithm.sha256);
+      expect(config.digits, 8);
+      expect(config.period, 45);
+    });
+
+    test('rejects unsupported or invalid setup URIs', () {
+      expect(
+        parseOtpauthUri('otpauth://hotp/Example:alice?secret=GEZDGNBV'),
+        isNull,
+      );
+      expect(
+        parseOtpauthUri(
+          'otpauth://totp/Example:alice?secret=GEZDGNBV&algorithm=SHA3',
+        ),
+        isNull,
+      );
+      expect(
+        parseOtpauthUri('otpauth://totp/Example:alice?secret=not-base32!'),
+        isNull,
+      );
+    });
   });
 }
