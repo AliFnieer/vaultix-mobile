@@ -12,50 +12,43 @@ import 'package:local_auth/local_auth.dart';
 /// material outlives a server session because the encrypted database also
 /// remains on disk after sign-out.
 class KeyStore {
-  const KeyStore();
+  final SecureStore _storage;
 
-  static const _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(),
-    iOptions: IOSOptions(
-      accessibility: KeychainAccessibility.first_unlock_this_device,
-    ),
-  );
+  const KeyStore({this._storage = const FlutterSecureStore()});
 
   static const _kPrefix = 'vaultix.session';
 
   String _k(String name) => '$_kPrefix.$name';
 
   Future<void> saveRefreshToken(String token) =>
-      _storage.write(key: _k('refresh'), value: token);
+      _storage.write(_k('refresh'), token);
 
-  Future<String?> readRefreshToken() => _storage.read(key: _k('refresh'));
+  Future<String?> readRefreshToken() => _storage.read(_k('refresh'));
 
   Future<void> saveKdfParamsJson(String json) =>
-      _storage.write(key: _k('kdf'), value: json);
+      _storage.write(_k('kdf'), json);
 
-  Future<String?> readKdfParamsJson() => _storage.read(key: _k('kdf'));
+  Future<String?> readKdfParamsJson() => _storage.read(_k('kdf'));
 
   Future<void> saveWrappedVaultKey(String b64) =>
-      _storage.write(key: _k('wrapped_vault_key'), value: b64);
+      _storage.write(_k('wrapped_vault_key'), b64);
 
   Future<String?> readWrappedVaultKey() =>
-      _storage.read(key: _k('wrapped_vault_key'));
+      _storage.read(_k('wrapped_vault_key'));
 
   /// Plaintext vault key for the biometric unlock path. Written ONLY after the
   /// user enables biometric unlock; read ONLY after a successful biometric
   /// prompt (enforced by callers — see AuthController.unlockWithBiometric).
   Future<void> saveBiometricVaultKey(String b64) =>
-      _storage.write(key: _k('bio_vault_key'), value: b64);
+      _storage.write(_k('bio_vault_key'), b64);
 
-  Future<String?> readBiometricVaultKey() =>
-      _storage.read(key: _k('bio_vault_key'));
+  Future<String?> readBiometricVaultKey() => _storage.read(_k('bio_vault_key'));
 
-  Future<void> clearBiometricVaultKey() =>
-      _storage.delete(key: _k('bio_vault_key'));
+  Future<void> clearBiometricVaultKey() => _storage.delete(_k('bio_vault_key'));
 
   Future<void> clearSession() async {
-    await _storage.delete(key: _k('refresh'));
-    await _storage.delete(key: _k('bio_vault_key'));
+    await _storage.delete(_k('refresh'));
+    await _storage.delete(_k('bio_vault_key'));
   }
 
   Future<bool> hasSession() async =>

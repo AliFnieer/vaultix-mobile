@@ -15,13 +15,16 @@ device-managed authenticator entries.
 - Offline-first vault items with local persistence and backend synchronization.
 - Encrypted local database and AES-GCM protection for locally stored secret
   fields.
-- Device-only authenticator entries and QR scanning.
+- Device-only authenticator entries, QR scanning, and time-based code
+  generation.
 - Light and dark Material themes, with Inter bundled locally.
 
 Authenticator entries are stored on the device; the backend does not currently
-provide MFA or server-backed TOTP endpoints. Vaultix Mobile does not claim
-zero-knowledge encryption: review the backend's data handling and the security
-assumptions for your deployment before storing sensitive information.
+provide MFA or server-backed TOTP endpoints. These authenticator codes are for
+other services and do not add a second factor to Vaultix account sign-in.
+Vaultix Mobile does not claim zero-knowledge encryption: review the backend's
+data handling and the security assumptions for your deployment before storing
+sensitive information.
 
 ## Supported platforms
 
