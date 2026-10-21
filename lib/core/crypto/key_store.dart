@@ -8,7 +8,9 @@ import 'package:local_auth/local_auth.dart';
 /// Stored here: the server refresh token, the device-local KDF params + salt,
 /// and the wrapped vault key (never the master password). The unwrapped vault
 /// key is held in memory only while unlocked; when "biometric unlock" is
-/// enabled we additionally persist it behind the biometric gate.
+/// enabled we additionally persist it behind the biometric gate. Local key
+/// material outlives a server session because the encrypted database also
+/// remains on disk after sign-out.
 class KeyStore {
   const KeyStore();
 
@@ -53,8 +55,6 @@ class KeyStore {
 
   Future<void> clearSession() async {
     await _storage.delete(key: _k('refresh'));
-    await _storage.delete(key: _k('kdf'));
-    await _storage.delete(key: _k('wrapped_vault_key'));
     await _storage.delete(key: _k('bio_vault_key'));
   }
 

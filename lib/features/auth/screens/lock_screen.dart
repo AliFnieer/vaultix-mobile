@@ -66,7 +66,11 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     if (!mounted) return;
     setState(() {
       _busy = false;
-      if (!ok) _error = 'Wrong master password for this device.';
+      if (!ok) {
+        _error =
+            'Could not unlock this device. Check your master password and '
+            'local vault data.';
+      }
     });
   }
 

@@ -81,6 +81,8 @@ class AuthController extends Notifier<AuthState> {
           .read(authApiProvider)
           .login(email: email, password: password);
       await _adoptSession(session, password);
+    } on _LocalVaultUnlockException catch (e) {
+      state = AuthState.loggedOut(error: e.message);
     } on ApiException catch (e) {
       state = AuthState.loggedOut(error: e.message);
     } catch (e) {
@@ -106,6 +108,8 @@ class AuthController extends Notifier<AuthState> {
             lastName: lastName,
           );
       await _adoptSession(session, password);
+    } on _LocalVaultUnlockException catch (e) {
+      state = AuthState.loggedOut(error: e.message);
     } on ApiException catch (e) {
       state = AuthState.loggedOut(error: e.message);
     } catch (e) {
@@ -148,27 +152,19 @@ class AuthController extends Notifier<AuthState> {
           localMaster: localMaster,
         );
       } on SecretBoxAuthenticationError {
-        // Wrong password for the LOCAL key can't happen when the server
-        // accepted the login unless storage was tampered with; regenerate.
-        developer.log(
-          'wrap mismatch; regenerating local vault key',
-          name: 'auth',
+        throw const _LocalVaultUnlockException(
+          'Your account password was accepted, but it does not unlock the '
+          'vault data saved on this device. Your local key was kept unchanged.',
         );
-        vaultKey = SecretKey(randomBytes(32));
-        wrapped = await VaultCrypto.wrapVaultKey(
-          vaultKey,
-          localMaster: localMaster,
-        );
-        await ks.saveWrappedVaultKey(wrapped);
       }
     }
 
+    await _openVault(vaultKey);
+    await ks.saveWrappedVaultKey(wrapped);
     await ks.saveRefreshToken(session.refreshToken);
     ref
         .read(tokenStoreProvider)
         .setTokens(access: session.accessToken, refresh: session.refreshToken);
-
-    await _openVault(vaultKey);
     state = AuthState.unlocked(email: session.user.email);
   }
 
@@ -198,6 +194,14 @@ class AuthController extends Notifier<AuthState> {
       state = AuthState.unlocked(email: email ?? '');
       return true;
     } on SecretBoxAuthenticationError {
+      return false;
+    } catch (e, stackTrace) {
+      developer.log(
+        'local vault unlock failed',
+        name: 'auth',
+        error: e,
+        stackTrace: stackTrace,
+      );
       return false;
     }
   }
@@ -254,16 +258,16 @@ class AuthController extends Notifier<AuthState> {
   // ---------------------------------------------------------------------------
 
   Future<void> _openVault(SecretKey vaultKey) async {
-    ref.read(vaultKeyProvider.notifier).state = vaultKey;
-
     // Close any previous connection before opening a new one.
     ref.read(syncEngineProvider).detach();
+    ref.read(vaultKeyProvider.notifier).state = null;
     final old = ref.read(appDbProvider);
     ref.read(appDbProvider.notifier).state = null;
     await old?.close();
 
     final passphrase = await VaultCrypto.dbPassphraseHex(vaultKey);
     final db = await openAppDb(passphrase: passphrase);
+    ref.read(vaultKeyProvider.notifier).state = vaultKey;
     ref.read(appDbProvider.notifier).state = db;
 
     ref.read(syncEngineProvider).attach(db, vaultKey);
@@ -280,6 +284,12 @@ class AuthController extends Notifier<AuthState> {
       await db.close();
     }
   }
+}
+
+class _LocalVaultUnlockException implements Exception {
+  final String message;
+
+  const _LocalVaultUnlockException(this.message);
 }
 
 /// Sync engine provider, wired after unlock.

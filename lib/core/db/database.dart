@@ -217,7 +217,7 @@ class AppDb extends _$AppDb {
 Future<AppDb> openAppDb({required String passphrase}) async {
   final dir = await getApplicationDocumentsDirectory();
   final file = File('${dir.path}/vaultix.db');
-  return AppDb(
+  final db = AppDb(
     LazyDatabase(() async {
       return NativeDatabase.createInBackground(
         file,
@@ -228,4 +228,11 @@ Future<AppDb> openAppDb({required String passphrase}) async {
       );
     }),
   );
+  try {
+    await db.customSelect('SELECT count(*) FROM sqlite_master').getSingle();
+    return db;
+  } catch (_) {
+    await db.close();
+    rethrow;
+  }
 }
